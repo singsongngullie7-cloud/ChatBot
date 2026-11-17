@@ -30,7 +30,6 @@ The key is read from `.streamlit/secrets.toml`:
 ```toml
 [gemini]
 api_key = "YOUR_GEMINI_API_KEY"
-model = "gemini-3.5-flash-lite"
 ```
 
 ## Deploy on Streamlit Community Cloud

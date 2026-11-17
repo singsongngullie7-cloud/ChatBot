@@ -1,22 +1,47 @@
+import os
 from pathlib import Path
 
 import streamlit as st
 from google import genai
 from google.genai import types
 
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python < 3.11
+    import tomli as tomllib
+
 # ---------- Page setup ----------
 st.set_page_config(page_title="Affiliate Marketing Chatbot", page_icon="💬")
 st.title("💬 Affiliate Marketing Chatbot")
 st.caption("Ask anything about affiliate marketing. Answers come from the built-in knowledge guide.")
 
-# ---------- Config (from .streamlit/secrets.toml) ----------
-try:
-    API_KEY = st.secrets["gemini"]["api_key"]
-    MODEL_NAME = st.secrets["gemini"].get("model", "gemini-3.5-flash-lite")
-except (KeyError, FileNotFoundError):
+# ---------- Config ----------
+# Looks for the key in this order:
+#   1. Streamlit secrets (.streamlit/secrets.toml in the launch folder, or Cloud Secrets)
+#   2. .streamlit/secrets.toml next to app.py (works from any launch folder)
+#   3. GEMINI_API_KEY / GEMINI_MODEL environment variables
+def load_config():
+    try:
+        return st.secrets["gemini"]["api_key"], st.secrets["gemini"].get("model", DEFAULT_MODEL)
+    except Exception:
+        pass
+    local = Path(__file__).parent / ".streamlit" / "secrets.toml"
+    if local.exists():
+        try:
+            gem = tomllib.loads(local.read_text(encoding="utf-8")).get("gemini", {})
+            if gem.get("api_key"):
+                return gem["api_key"], gem.get("model", DEFAULT_MODEL)
+        except Exception:
+            pass
+    return os.environ.get("GEMINI_API_KEY"), os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)
+
+
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
+API_KEY, MODEL_NAME = load_config()
+if not API_KEY:
     st.error(
         "Gemini API key not found. Add it to `.streamlit/secrets.toml` under the "
-        "`[gemini]` section (see README.md)."
+        "`[gemini]` section (see README.md), or set the GEMINI_API_KEY environment variable."
     )
     st.stop()
 
